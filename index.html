@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سرباز غمگین - بازی عاشقانه جنگی</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Vazir:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Vazir', sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            overflow-x: hidden;
+        }
+        
+        #gameCanvas {
+            border: 3px solid #ffd700;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+            background: linear-gradient(180deg, #87ceeb 0%, #228b22 70%, #8b4513 100%);
+        }
+        
+        .story-panel {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .heart-animation {
+            animation: heartbeat 2s infinite;
+        }
+        
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .rain-drop {
+            position: absolute;
+            background: linear-gradient(transparent, #87ceeb);
+            animation: rain-fall 1s linear infinite;
+        }
+        
+        @keyframes rain-fall {
+            to { transform: translateY(100vh); }
+        }
+        
+        .control-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+    <!-- Rain Effect -->
+    <div id="rainContainer" class="fixed inset-0 pointer-events-none z-0"></div>
+    
+    <!-- Header -->
+    <div class="text-center mb-8 z-10 relative">
+        <h1 class="text-4xl md:text-6xl font-bold text-yellow-400 mb-4 text-shadow-lg">
+            <i class="fas fa-heart heart-animation text-red-500"></i>
+            سرباز غمگین
+            <i class="fas fa-heart heart-animation text-red-500"></i>
+        </h1>
+        <p class="text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed">
+            داستان عاشقانه و غمگین سربازی که در میدان جنگ، قلبش را از دست داده است...
+        </p>
+    </div>
+
+    <!-- Game Area -->
+    <div class="flex flex-col lg:flex-row gap-8 w-full max-w-7xl z-10 relative">
+        <!-- Game Canvas -->
+        <div class="flex-1">
+            <canvas id="gameCanvas" width="800" height="600" class="w-full max-w-4xl mx-auto rounded-lg"></canvas>
+        </div>
+        
+        <!-- Story Panel -->
+        <div class="w-full lg:w-80">
+            <div class="story-panel rounded-lg p-6 mb-6 text-white">
+                <h3 class="text-xl font-bold mb-4 text-yellow-400">
+                    <i class="fas fa-book"></i> داستان
+                </h3>
+                <div id="storyText" class="text-sm leading-relaxed mb-4">
+                    سرباز جوانی به نام آرش در میدان جنگ ایستاده است. قلبش پر از غم و اندوه است، زیرا عشق زندگی‌اش، نگار زیبا، او را ترک کرده و با دیگری ازدواج کرده است...
+                </div>
+                <div class="flex space-x-2 space-x-reverse">
+                    <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                    <div class="w-3 h-3 bg-yellow-500 rounded-full animate-pulse" style="animation-delay: 0.2s;"></div>
+                    <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse" style="animation-delay: 0.4s;"></div>
+                </div>
+            </div>
+            
+            <!-- Controls -->
+            <div class="story-panel rounded-lg p-6 text-white">
+                <h3 class="text-xl font-bold mb-4 text-yellow-400">
+                    <i class="fas fa-gamepad"></i> کنترل‌ها
+                </h3>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <button class="control-btn" onmousedown="game.soldier.moveLeft = true" onmouseup="game.soldier.moveLeft = false">
+                        <i class="fas fa-arrow-left"></i> چپ
+                    </button>
+                    <button class="control-btn" onmousedown="game.soldier.moveRight = true" onmouseup="game.soldier.moveRight = false">
+                        <i class="fas fa-arrow-right"></i> راست
+                    </button>
+                    <button class="control-btn" onclick="game.soldier.jump()">
+                        <i class="fas fa-arrow-up"></i> پرش
+                    </button>
+                    <button class="control-btn" onclick="game.shoot()">
+                        <i class="fas fa-crosshairs"></i> شلیک
+                    </button>
+                </div>
+                <div class="mt-4 space-y-2">
+                    <button class="control-btn w-full" onclick="game.nextStory()">
+                        <i class="fas fa-forward"></i> ادامه داستان
+                    </button>
+                    <button class="control-btn w-full" onclick="game.toggleMusic()">
+                        <i class="fas fa-music"></i> <span id="musicBtn">قطع موسیقی</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Stats -->
+            <div class="story-panel rounded-lg p-6 mt-6 text-white">
+                <h3 class="text-xl font-bold mb-4 text-yellow-400">
+                    <i class="fas fa-chart-bar"></i> آمار
+                </h3>
+                <div class="space-y-2 text-sm">
+                    <div>💔 غم: <span id="sadnessLevel">85%</span></div>
+                    <div>⚡ انرژی: <span id="energyLevel">60%</span></div>
+                    <div>🎯 دقت: <span id="accuracyLevel">92%</span></div>
+                    <div>❤️ امید: <span id="hopeLevel">25%</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Audio -->
+    <audio id="bgMusic" loop>
+        <source src="data:audio/wav;base64," type="audio/wav">
+    </audio>
+
+    <script>
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.width = 800;
+                this.height = 600;
+                this.canvas.width = this.width;
+                this.canvas.height = this.height;
+                
+                this.soldier = new Soldier(100, this.height - 150);
+                this.particles = [];
+                this.bullets = [];
+                this.enemies = [];
+                this.storyIndex = 0;
+                this.musicPlaying = true;
+                
+                this.stories = [
+                    "سرباز جوانی به نام آرش در میدان جنگ ایستاده است. قلبش پر از غم و اندوه است، زیرا عشق زندگی‌اش، نگار زیبا، او را ترک کرده و با دیگری ازدواج کرده است...",
+                    "آرش نامه آخر نگار را در جیبش نگه داشته است. هر شب آن را می‌خواند و اشک می‌ریزد. جنگ برایش فرار از درد عشق شده است...",
+                    "در میدان جنگ، آرش دلیرانه می‌جنگد، گویی که می‌خواهد با مرگ ملاقات کند. اما هنوز امیدی در قلبش زنده است...",
+                    "شبی در خواب، نگار را می‌بیند که دستش را به سوی او دراز می‌کند. بیدار می‌شود و متوجه می‌شود که هنوز عاشق است...",
+                    "آرش تصمیم می‌گیرد که بعد از جنگ به خانه برگردد و برای عشقش بجنگد. شاید هنوز دیر نشده باشد..."
+                ];
+                
+                this.initGame();
+            }
+            
+            initGame() {
+                // Create rain effect
+                this.createRainEffect();
+                
+                // Create enemy soldiers
+                for (let i = 0; i < 3; i++) {
+                    this.enemies.push(new Enemy(600 + i * 150, this.height - 150));
+                }
+                
+                // Start game loop
+                this.gameLoop();
+                
+                // Keyboard controls
+                this.setupControls();
+            }
+            
+            createRainEffect() {
+                const rainContainer = document.getElementById('rainContainer');
+                for (let i = 0; i < 50; i++) {
+                    const drop = document.createElement('div');
+                    drop.className = 'rain-drop';
+                    drop.style.left = Math.random() * 100 + '%';
+                    drop.style.animationDelay = Math.random() * 2 + 's';
+                    drop.style.width = '2px';
+                    drop.style.height = '20px';
+                    rainContainer.appendChild(drop);
+                }
+            }
+            
+            setupControls() {
+                document.addEventListener('keydown', (e) => {
+                    switch(e.key) {
+                        case 'ArrowLeft':
+                        case 'a':
+                        case 'A':
+                            this.soldier.moveLeft = true;
+                            break;
+                        case 'ArrowRight':
+                        case 'd':
+                        case 'D':
+                            this.soldier.moveRight = true;
+                            break;
+                        case 'ArrowUp':
+                        case 'w':
+                        case 'W':
+                        case ' ':
+                            this.soldier.jump();
+                            break;
+                        case 'Enter':
+                        case 'f':
+                        case 'F':
+                            this.shoot();
+                            break;
+                    }
+                });
+                
+                document.addEventListener('keyup', (e) => {
+                    switch(e.key) {
+                        case 'ArrowLeft':
+                        case 'a':
+                        case 'A':
+                            this.soldier.moveLeft = false;
+                            break;
+                        case 'ArrowRight':
+                        case 'd':
+                        case 'D':
+                            this.soldier.moveRight = false;
+                            break;
+                    }
+                });
+            }
+            
+            shoot() {
+                this.bullets.push(new Bullet(this.soldier.x + 50, this.soldier.y + 25));
+                // Create muzzle flash particles
+                for (let i = 0; i < 5; i++) {
+                    this.particles.push(new Particle(this.soldier.x + 50, this.soldier.y + 25, 'fire'));
+                }
+            }
+            
+            nextStory() {
+                this.storyIndex = (this.storyIndex + 1) % this.stories.length;
+                document.getElementById('storyText').innerHTML = this.stories[this.storyIndex];
+                
+                // Update stats based on story
+                const sadness = Math.max(20, 85 - this.storyIndex * 10);
+                const energy = Math.min(90, 60 + this.storyIndex * 5);
+                const hope = Math.min(80, 25 + this.storyIndex * 15);
+                
+                document.getElementById('sadnessLevel').textContent = sadness + '%';
+                document.getElementById('energyLevel').textContent = energy + '%';
+                document.getElementById('hopeLevel').textContent = hope + '%';
+            }
+            
+            toggleMusic() {
+                this.musicPlaying = !this.musicPlaying;
+                const btn = document.getElementById('musicBtn');
+                btn.textContent = this.musicPlaying ? 'قطع موسیقی' : 'پخش موسیقی';
+            }
+            
+            update() {
+                // Update soldier
+                this.soldier.update();
+                
+                // Update bullets
+                this.bullets = this.bullets.filter(bullet => {
+                    bullet.update();
+                    return bullet.x < this.width;
+                });
+                
+                // Update enemies
+                this.enemies.forEach(enemy => enemy.update());
+                
+                // Update particles
+                this.particles = this.particles.filter(particle => {
+                    particle.update();
+                    return particle.life > 0;
+                });
+                
+                // Add random smoke particles
+                if (Math.random() < 0.1) {
+                    this.particles.push(new Particle(
+                        Math.random() * this.width,
+                        this.height - 50,
+                        'smoke'
+                    ));
+                }
+                
+                // Check collisions
+                this.checkCollisions();
+            }
+            
+            checkCollisions() {
+                this.bullets.forEach((bullet, bulletIndex) => {
+                    this.enemies.forEach((enemy, enemyIndex) => {
+                        if (bullet.x > enemy.x && bullet.x < enemy.x + 40 &&
+                            bullet.y > enemy.y && bullet.y < enemy.y + 60) {
+                            // Hit enemy
+                            this.bullets.splice(bulletIndex, 1);
+                            for (let i = 0; i < 10; i++) {
+                                this.particles.push(new Particle(enemy.x + 20, enemy.y + 30, 'explosion'));
+                            }
+                        }
+                    });
+                });
+            }
+            
+            draw() {
+                // Clear canvas
+                this.ctx.clearRect(0, 0, this.width, this.height);
+                
+                // Draw background
+                this.drawBackground();
+                
+                // Draw particles (behind)
+                this.particles.filter(p => p.type === 'smoke').forEach(particle => particle.draw(this.ctx));
+                
+                // Draw soldier
+                this.soldier.draw(this.ctx);
+                
+                // Draw enemies
+                this.enemies.forEach(enemy => enemy.draw(this.ctx));
+                
+                // Draw bullets
+                this.bullets.forEach(bullet => bullet.draw(this.ctx));
+                
+                // Draw particles (front)
+                this.particles.filter(p => p.type !== 'smoke').forEach(particle => particle.draw(this.ctx));
+                
+                // Draw UI
+                this.drawUI();
+            }
+            
+            drawBackground() {
+                // Ground
+                this.ctx.fillStyle = '#8B4513';
+                this.ctx.fillRect(0, this.height - 50, this.width, 50);
+                
+                // Trenches
+                this.ctx.fillStyle = '#654321';
+                this.ctx.fillRect(50, this.height - 80, 100, 30);
+                this.ctx.fillRect(650, this.height - 80, 100, 30);
+                
+                // War debris
+                this.ctx.fillStyle = '#555';
+                for (let i = 0; i < 5; i++) {
+                    this.ctx.fillRect(200 + i * 100, this.height - 70, 20, 20);
+                }
+                
+                // Moon
+                this.ctx.fillStyle = '#F0F8FF';
+                this.ctx.beginPath();
+                this.ctx.arc(this.width - 100, 80, 30, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+            
+            drawUI() {
+                // Health bar
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                this.ctx.fillRect(10, 10, 200, 30);
+                this.ctx.fillStyle = '#ff4444';
+                this.ctx.fillRect(15, 15, (this.soldier.health / 100) * 190, 20);
+                
+                this.ctx.fillStyle = 'white';
+                this.ctx.font = '14px Vazir';
+                this.ctx.fillText('سلامتی: ' + this.soldier.health + '%', 220, 30);
+            }
+            
+            gameLoop() {
+                this.update();
+                this.draw();
+                requestAnimationFrame(() => this.gameLoop());
+            }
+        }
+        
+        class Soldier {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 40;
+                this.height = 60;
+                this.velocityY = 0;
+                this.isJumping = false;
+                this.moveLeft = false;
+                this.moveRight = false;
+                this.health = 100;
+                this.animationFrame = 0;
+            }
+            
+            update() {
+                // Movement
+                if (this.moveLeft && this.x > 0) {
+                    this.x -= 3;
+                }
+                if (this.moveRight && this.x < 750) {
+                    this.x += 3;
+                }
+                
+                // Jumping
+                if (this.isJumping) {
+                    this.y += this.velocityY;
+                    this.velocityY += 0.8; // gravity
+                    
+                    if (this.y >= 540) { // ground level
+                        this.y = 540;
+                        this.isJumping = false;
+                        this.velocityY = 0;
+                    }
+                }
+                
+                this.animationFrame += 0.2;
+            }
+            
+            jump() {
+                if (!this.isJumping) {
+                    this.isJumping = true;
+                    this.velocityY = -15;
+                }
+            }
+            
+            draw(ctx) {
+                // Draw soldier figure
+                ctx.save();
+                
+                // Body
+                ctx.fillStyle = '#4A5D23'; // Military green
+                ctx.fillRect(this.x + 15, this.y + 20, 20, 35);
+                
+                // Head
+                ctx.fillStyle = '#FDBCB4'; // Skin color
+                ctx.fillRect(this.x + 18, this.y, 15, 20);
+                
+                // Helmet
+                ctx.fillStyle = '#2F3F2F';
+                ctx.fillRect(this.x + 15, this.y - 5, 20, 15);
+                
+                // Arms
+                ctx.fillStyle = '#4A5D23';
+                const armOffset = Math.sin(this.animationFrame) * 3;
+                ctx.fillRect(this.x + 5, this.y + 25 + armOffset, 12, 20);
+                ctx.fillRect(this.x + 33, this.y + 25 - armOffset, 12, 20);
+                
+                // Legs
+                const legOffset = this.moveLeft || this.moveRight ? Math.sin(this.animationFrame * 2) * 5 : 0;
+                ctx.fillRect(this.x + 18, this.y + 50 + legOffset, 8, 25);
+                ctx.fillRect(this.x + 24, this.y + 50 - legOffset, 8, 25);
+                
+                // Rifle
+                ctx.fillStyle = '#2F2F2F';
+                ctx.fillRect(this.x + 35, this.y + 30, 25, 3);
+                
+                // Eyes (sad expression)
+                ctx.fillStyle = '#000';
+                ctx.fillRect(this.x + 20, this.y + 8, 2, 2);
+                ctx.fillRect(this.x + 26, this.y + 8, 2, 2);
+                
+                // Tear drops
+                ctx.fillStyle = '#87CEEB';
+                ctx.beginPath();
+                ctx.arc(this.x + 21, this.y + 12, 1, 0, Math.PI * 2);
+                ctx.arc(this.x + 27, this.y + 12, 1, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+        
+        class Enemy {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 40;
+                this.height = 60;
+                this.health = 50;
+                this.animationFrame = 0;
+            }
+            
+            update() {
+                this.animationFrame += 0.1;
+                // Simple AI: move towards soldier occasionally
+                if (Math.random() < 0.02) {
+                    this.x -= 1;
+                }
+            }
+            
+            draw(ctx) {
+                ctx.save();
+                
+                // Body
+                ctx.fillStyle = '#8B0000'; // Enemy red
+                ctx.fillRect(this.x + 15, this.y + 20, 20, 35);
+                
+                // Head
+                ctx.fillStyle = '#FDBCB4';
+                ctx.fillRect(this.x + 18, this.y, 15, 20);
+                
+                // Helmet
+                ctx.fillStyle = '#4B0000';
+                ctx.fillRect(this.x + 15, this.y - 5, 20, 15);
+                
+                // Arms
+                ctx.fillStyle = '#8B0000';
+                const armOffset = Math.sin(this.animationFrame) * 2;
+                ctx.fillRect(this.x + 5, this.y + 25 + armOffset, 12, 20);
+                ctx.fillRect(this.x + 33, this.y + 25 - armOffset, 12, 20);
+                
+                // Legs
+                ctx.fillRect(this.x + 18, this.y + 50, 8, 25);
+                ctx.fillRect(this.x + 24, this.y + 50, 8, 25);
+                
+                // Rifle
+                ctx.fillStyle = '#2F2F2F';
+                ctx.fillRect(this.x - 5, this.y + 30, 25, 3);
+                
+                ctx.restore();
+            }
+        }
+        
+        class Bullet {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.speed = 8;
+            }
+            
+            update() {
+                this.x += this.speed;
+            }
+            
+            draw(ctx) {
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(this.x, this.y, 8, 2);
+                
+                // Trail effect
+                ctx.fillStyle = '#FFA500';
+                ctx.fillRect(this.x - 5, this.y, 5, 2);
+            }
+        }
+        
+        class Particle {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.life = 60;
+                this.maxLife = 60;
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+                this.size = Math.random() * 4 + 2;
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+                
+                if (this.type === 'smoke') {
+                    this.vy -= 0.1; // Rise up
+                    this.size += 0.1;
+                } else if (this.type === 'fire') {
+                    this.vy += 0.2; // Fall down
+                }
+            }
+            
+            draw(ctx) {
+                const alpha = this.life / this.maxLife;
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                
+                if (this.type === 'fire') {
+                    ctx.fillStyle = `rgba(255, ${100 + Math.random() * 155}, 0, ${alpha})`;
+                } else if (this.type === 'smoke') {
+                    ctx.fillStyle = `rgba(128, 128, 128, ${alpha * 0.5})`;
+                } else if (this.type === 'explosion') {
+                    ctx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
+                }
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+        
+        // Initialize game
+        let game;
+        
+        window.addEventListener('load', () => {
+            game = new Game();
+        });
+        
+        // Update stats periodically
+        setInterval(() => {
+            const accuracy = Math.floor(Math.random() * 10) + 85;
+            document.getElementById('accuracyLevel').textContent = accuracy + '%';
+        }, 3000);
+    </script>
+</body>
+</html>
